@@ -40,7 +40,7 @@ let paddle;
 let paddleInfo = {
   width: 200,
   height: 20,
-  speed: 30
+  speed: 20
 }
 
 let ball;
@@ -86,6 +86,10 @@ let level = 1;
 const maxLevel = 8;
 let levelText;
 let level_img;
+
+let inputPos;
+let cursors;
+let rightOrLeft = false;
 
 let ballOnPaddle = true;
 let afterRestart = true;
@@ -258,8 +262,8 @@ function create() { //executing once after ready
       spaceHasBeenPressed = false;
     }
   }
+  cursors = game.input.keyboard.createCursorKeys();
 }
-
 function createText() {
   scoreText = game.add.text(game.world.width * 0.064, game.world.height * 0.04, `${score}`, textStyle);
   scoreText.anchor.set(0.5, 0.5);
@@ -285,13 +289,27 @@ function update() { //executed on every frame
   game.physics.arcade.collide(ball, bricks, ballHitBrick); // third parameter is a function executed when occured
 
   if (gamePaused == false) {
-    if (game.input.x !== 0) {
-      paddle.x = game.input.x;
+    if (game.input.activePointer) {
+      if (cursors.right.isDown || cursors.left.isDown) {
+        rightOrLeft = true;
+        if (cursors.right.isDown) {
+          paddle.x += paddleInfo.speed;
+        }
+        if (cursors.left.isDown) {
+          paddle.x -= paddleInfo.speed;
+        }
+        inputPos = game.input.x;
+      }
+      else if (game.input.x != inputPos) {
+        paddle.x = game.input.x;
+      }
     }
-    else {
+    if ((cursors.right.isDown == false && cursors.left.isDown == false) && game.input.x == 0 && rightOrLeft == false) {
       paddle.x = game.world.width * 0.5;
+      rightOrLeft = false;
     }
   }
+
   if (paddle.x < paddle.width / 2) {
     paddle.x = paddle.width / 2;
   }
@@ -311,15 +329,14 @@ function createBricks() {
 
   for (c = 0; c < brickInfo.count.columns; c++) {
     for (r = 0; r < brickInfo.count.rows; r++) {
-      let brickX = c * (brickInfo.width + 2 * brickInfo.offset.left) + brickInfo.offset.left;
-      let brickY = (r * (brickInfo.offset.top * 2 + brickInfo.height)) + brickInfo.offset.top + brickInfo.marginTop;
+      let brickX = c * (brickInfo.width + 2 * brickInfo.offset.left) + brickInfo.offset.left; //souřadnice x pro jednotlivý brick
+      let brickY = (r * (brickInfo.offset.top * 2 + brickInfo.height)) + brickInfo.offset.top + brickInfo.marginTop; //souřadnice y pro jednotlivý brick
       newBrick = game.add.sprite(brickX, brickY, 'brick');
       newBrick.width = brickInfo.width;
       newBrick.height = brickInfo.height;
       game.physics.enable(newBrick, Phaser.Physics.ARCADE);
       newBrick.body.immovable = true;
-      //newBrick.anchor.set(0.5);
-      bricks.add(newBrick); //add brick to a group
+      bricks.add(newBrick); //nový brick se přidá do skupiny
     }
   }
 }
@@ -406,7 +423,6 @@ function levelUp() {
       paddleInfo.width -= 15;
     }
   }
-  console.log(paddleInfo.width);
   brickInfo.count.rows++;
   createBricks();
   resetBall();
